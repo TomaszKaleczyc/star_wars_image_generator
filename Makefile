@@ -38,3 +38,12 @@ run-tensorboard:
 	@echo "======================== Run the displayed link in your browser to view training results via tensorboard ========================" 
 	. $(VENV_ACTIVATE_PATH) && \
 	tensorboard --logdir ./output/
+
+get-python-exec:
+	. $(VENV_ACTIVATE_PATH) && \
+	which python
+
+test:
+	. $(VENV_ACTIVATE_PATH) && \
+	cd src/ &&\
+	python test.py

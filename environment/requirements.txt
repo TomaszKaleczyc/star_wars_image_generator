@@ -3,6 +3,8 @@ kaggle==1.5.12
 matplotlib
 numpy==1.24.2
 pandas==1.5.3
+pillow==9.4.0
 pytorch-lightning==1.9.2
 tensorboard
 torch==1.13.1
+torchvision==0.14.1

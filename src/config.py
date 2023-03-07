@@ -1,0 +1,10 @@
+RANDOM_STATE = 5
+VERBOSE = True
+
+IMG_SIZE = 64
+BATCH_SIZE = 32
+DATA_DIR = "../data/star-wars-images/"
+
+TIMESTEPS = 200
+BETA_START = 1e-4
+BETA_END = 2e-2
