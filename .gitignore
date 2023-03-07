@@ -127,3 +127,8 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+
+# custom:
+*___*
+data/star-wars-images/*
