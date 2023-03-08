@@ -19,14 +19,14 @@ class Unet(LightningModule):
     
     def __init__(
             self, 
-            initial_unet_channels: int = config.INITIAL_UNET_CHANNELS,
+            img_size: int,
             num_module_layers: int = config.NUM_MODULE_LAYERS,
             image_channels: int = config.IMAGE_CHANNELS,
             num_time_embeddings: int = config.NUM_TIME_EMBEDDINGS
         ) -> None:
         super().__init__()
         self.save_hyperparameters()
-        self.initial_unet_channels = initial_unet_channels
+        self.img_size = img_size
         self.num_module_layers = num_module_layers
         self.image_channels = image_channels
         self.num_time_embeddings = num_time_embeddings
@@ -41,7 +41,12 @@ class Unet(LightningModule):
             nn.ReLU()
         )
 
-        self.initial_conv = nn.Conv2d(self.image_channels, self.downscaling_channels[0], 3, padding=1)
+        self.initial_conv = nn.Conv2d(
+            in_channels=self.image_channels, 
+            out_channels=self.downscaling_channels[0], 
+            kernel_size=3, 
+            padding=1)
+        
         self.downscaling = nn.ModuleList([
             UnetBlock(
                 input_channels=self.downscaling_channels[idx],
@@ -71,7 +76,7 @@ class Unet(LightningModule):
         """
         Returns list of channel numbers for down/upscaling
         """
-        channel_num = self.initial_unet_channels 
+        channel_num = self.img_size 
         channels = []
         for _ in range(self.num_module_layers):
             channels.append(int(channel_num))

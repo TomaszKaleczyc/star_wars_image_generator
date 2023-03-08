@@ -22,7 +22,8 @@ class PositionEmbeddings(nn.Module):
     def forward(self, time: Tensor) -> Tensor:
         device = time.device
         embeddings = math.log(1e5) / (self.half_dim - 1)
-        embeddings = torch.exp(torch.arange(self.half_dim, device=device) * -embeddings)
-        embeddings = time[:, None] * embeddings[None, :]
+        positions = torch.arange(self.half_dim, device=device)
+        embeddings = torch.exp(positions * -embeddings)
+        embeddings = time.view(-1, 1) * embeddings.view(1, -1)
         embeddings = torch.cat((embeddings.sin(), embeddings.cos()), dim=-1)
         return embeddings

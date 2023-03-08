@@ -42,8 +42,3 @@ run-tensorboard:
 get-python-exec:
 	. $(VENV_ACTIVATE_PATH) && \
 	which python
-
-test:
-	. $(VENV_ACTIVATE_PATH) && \
-	cd src/ &&\
-	python test.py

@@ -7,7 +7,7 @@ import config
 
 
 
-class MVCNNDataModule(LightningDataModule):
+class SWImageDataModule(LightningDataModule):
     """
     Manages the model datasets
     """
