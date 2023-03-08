@@ -34,8 +34,19 @@ class UnetBlock(nn.Module):
                         kernel_size=self.kernel_size,
                         padding=1
                     )
+        
         self.activation = nn.ReLU()
-        self.batch_norm = nn.BatchNorm2d(num_features=self.output_channels)
+        self.first_pass = nn.Sequential(
+            self.conv1,
+            self.activation,
+            nn.BatchNorm2d(num_features=self.output_channels)
+        )
+        
+        self.second_pass = nn.Sequential(
+            self.conv2,
+            self.activation,
+            nn.BatchNorm2d(num_features=self.output_channels)
+        )
 
     def _get_block_variants(self, upscaling: bool) -> Tuple[nn.Module, nn.Module]:
         """
@@ -74,16 +85,15 @@ class UnetBlock(nn.Module):
     
     def forward(self, x: Tensor, t: Tensor) -> Tensor:
         # First convolution:
-        x = self.batch_norm(self.activation(self.conv1(x)))
+        x = self.first_pass(x)
 
         # Time embedding
         time_embedding = self.activation(self.time_mlp(t))
         B, C = x.shape[:2]
-        # time_embedding = time_embedding[(..., ) + (None, ) * 2]
         time_embedding = time_embedding.view(B, C, 1, 1)
 
         x += time_embedding
-        x = self.batch_norm(self.activation(self.conv2(x)))
+        x = self.second_pass(x)
         # Down / upscale
         output = self.transform(x)
         return output

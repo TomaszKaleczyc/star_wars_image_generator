@@ -20,10 +20,11 @@ class PositionEmbeddings(nn.Module):
         return self.dim // 2
 
     def forward(self, time: Tensor) -> Tensor:
-        device = time.device
-        embeddings = math.log(1e5) / (self.half_dim - 1)
-        positions = torch.arange(self.half_dim, device=device)
-        embeddings = torch.exp(positions * -embeddings)
-        embeddings = time.view(-1, 1) * embeddings.view(1, -1)
-        embeddings = torch.cat((embeddings.sin(), embeddings.cos()), dim=-1)
+        # device = time.device
+        embeddings = torch.zeros(self.dim, len(time))
+        position = torch.arange(0, self.dim).unsqueeze(1)
+        div_term = torch.exp((torch.arange(0, len(time), 2, dtype=torch.float) *
+                            -(math.log(10000.0) / len(time))))
+        embeddings[:, 0::2] = torch.sin(position.float() * div_term)
+        embeddings[:, 1::2] = torch.cos(position.float() * div_term)
         return embeddings

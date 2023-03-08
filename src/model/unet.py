@@ -1,10 +1,16 @@
-from typing import List
+from typing import Any, List, Optional
+
+from matplotlib import pyplot as plt
 
 import torch
 from torch import Tensor
 import torch.nn as nn
+import torch.nn.functional as F
 
 from pytorch_lightning import LightningModule
+
+from dataset import DiffusionSampler
+from utils import image_utils
 
 from .position_embeddings import PositionEmbeddings
 from .unet_block import UnetBlock
@@ -16,20 +22,28 @@ class Unet(LightningModule):
     """
     Basic Unet architecture implementation
     """
+    sampler: DiffusionSampler
     
     def __init__(
             self, 
             img_size: int,
             num_module_layers: int = config.NUM_MODULE_LAYERS,
             image_channels: int = config.IMAGE_CHANNELS,
-            num_time_embeddings: int = config.NUM_TIME_EMBEDDINGS
+            num_time_embeddings: int = config.NUM_TIME_EMBEDDINGS,
+            timesteps: int = config.TIMESTEPS,
+            learning_rate: float = config.LEARNING_RATE,
+            sampler: Optional[DiffusionSampler] = None
         ) -> None:
         super().__init__()
         self.save_hyperparameters()
         self.img_size = img_size
         self.num_module_layers = num_module_layers
+        self.timesteps = timesteps
         self.image_channels = image_channels
         self.num_time_embeddings = num_time_embeddings
+        self.learning_rate = learning_rate
+
+        self.sampler = sampler if sampler is not None else DiffusionSampler()
 
         self.downscaling_channels = self._get_channels()
         self.upscaling_channels = self._get_channels(upscaling=True)
@@ -100,3 +114,45 @@ class Unet(LightningModule):
             x = upscale(x, t)
         x = self.output(x)
         return x
+    
+    def _loss_step(self, batch: Tensor) -> Tensor:
+        """
+        Standard loss step
+        """
+        B = batch.shape[0]
+        t = torch.randint(0, self.timesteps, (B,), device=self.device).long()
+        x_noisy, noise = self.sampler.forward_sample(batch[0], t, device=self.device)
+        noise_prediction = self(x_noisy, t)
+        loss = F.l1_loss(noise, noise_prediction)
+        return loss        
+
+    def training_step(self, batch: Tensor, batch_idx: int) -> Tensor:
+        loss = self._loss_step(batch)
+        self.log('training_loss', loss)
+    
+    def validation_step(self, batch: Tensor, batch_idx: int) -> Tensor:
+        loss = self._loss_step(batch)
+        self.log('validation_loss', loss)
+
+    def configure_optimizers(self) -> Any:
+        return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+    
+    @torch.no_grad()
+    def plot_sample(self) -> None:
+        img_shape = (1, self.image_channels, self.img_size, self.img_size)
+        img = torch.randn_like(img_shape, device=self.device)
+
+        plt.figure(figsize=(15, 5))
+        num_images = 10
+        stepsize = int(self.timesteps / num_images)
+
+        for timestep in range(self.timesteps, 0, -1):
+            t = torch.full((1,), timestep, device=self.device, dtype=torch.long)
+            pred = self(img, t)
+            img = self.sampler.sample_timestep(img, pred, t)
+            if timestep % stepsize == 0:
+                ax = plt.subplot(1, num_images, timestep // stepsize + 1)
+                image_utils.show_tensor_image(img.detach().cpu())
+                ax.title.set_text(f'T {timestep}')
+                ax.axis('off')
+        plt.show()

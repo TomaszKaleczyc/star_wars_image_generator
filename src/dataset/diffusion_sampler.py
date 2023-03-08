@@ -68,3 +68,31 @@ class DiffusionSampler:
         output = values.gather(-1, timestep.cpu())
         reshape_args = ((1,) * (len(input_shape) - 1))
         return output.reshape(batch_size, *reshape_args).to(timestep.device)
+    
+    @torch.no_grad()
+    def sample_timestep(self, x: Tensor, pred: Tensor, t: Tensor) -> Tensor:
+        """
+        Performs sampling for a given timestep, image and prediction
+        """
+        betas_t = self._get_index_from_list(self.betas, t, x.shape)
+        sqrt_one_minus_alphas_cumproduct_t = self._get_index_from_list(
+            self.sqrt_one_minus_alphas_cumproduct, t, x.shape 
+        )
+        sqrt_recip_alphas_t = self._get_index_from_list(
+            self.sqrt_recip_alphas, t, x.shape
+        )
+        posterior_variance_t = self._get_index_from_list(
+            self.posterior_variance, t, x.shape
+        )
+
+        # current image - noise prediction
+        model_mean = sqrt_recip_alphas_t * (
+            x - betas_t * pred / sqrt_one_minus_alphas_cumproduct_t
+        )
+        if t == 0:
+            return model_mean
+        
+        noise = torch.randn_like(x)
+        noise_factor = torch.sqrt(posterior_variance_t) * noise
+        output = model_mean + noise_factor
+        return output

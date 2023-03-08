@@ -16,3 +16,4 @@ batch_size = batch.shape[0]
 timestep = torch.randint(0, config.TIMESTEPS, (batch_size,)).long()
 print('timestep', timestep)
 output = model(batch, timestep)
+print(output.shape)
