@@ -10,7 +10,7 @@ import torch.nn.functional as F
 
 from pytorch_lightning import LightningModule
 
-from dataset import DiffusionSampler
+from diffusion import DiffusionSampler
 from utils import image_utils
 
 from .position_embeddings import PositionEmbeddings
