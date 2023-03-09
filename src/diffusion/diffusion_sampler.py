@@ -17,28 +17,32 @@ class DiffusionSampler:
     def __init__(
             self,
             timesteps: int = config.TIMESTEPS,
-            start: float = config.BETA_START,
-            end: float = config.BETA_END,
+            beta_start: float = config.BETA_START,
+            beta_end: float = config.BETA_END,
             verbose: bool = config.VERBOSE,
             beta_scheduler: str = config.BETA_SCHEDULER
         ) -> None:
         self.timesteps = timesteps
-        self.start = start
-        self.end = end
+        self.beta_start = beta_start
+        self.beta_end = beta_end
         self.beta_scheduler = BETA_SCHEDULES[beta_scheduler]
         if verbose:
             print('Diffusion parameters:')
             print('\t* Beta scheduler:', beta_scheduler)
             print('\t* Timesteps:', self.timesteps)
-            print(f'\t* Starting beta: {self.start:.4f}')
-            print(f'\t* Final beta: {self.end:.4f}')
+            print(f'\t* Starting beta: {self.beta_start:.4f}')
+            print(f'\t* Final beta: {self.beta_end:.4f}')
         self._setup()
 
     def _setup(self) -> None:
         """
         Initiates the appropriate calculations for the diffusion
         """
-        self.betas = self.beta_scheduler(self.timesteps)
+        self.betas = self.beta_scheduler(
+            beta_start=self.beta_start,
+            beta_end=self.beta_end,
+            timesteps=self.timesteps
+            )
         self.alphas = 1. - self.betas
         self.alphas_cumproduct = torch.cumprod(self.alphas, axis=0)
         self.alphas_cumproduct_prev = F.pad(self.alphas_cumproduct[:-1], (1, 0), value=1.0)
