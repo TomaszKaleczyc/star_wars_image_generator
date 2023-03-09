@@ -1,6 +1,6 @@
 from typing import Any, List, Optional
 
-from tqdm import tqdm
+from tqdm.notebook import tqdm
 from matplotlib import pyplot as plt
 
 import torch
@@ -33,6 +33,7 @@ class Unet(LightningModule):
             num_time_embeddings: int = config.NUM_TIME_EMBEDDINGS,
             timesteps: int = config.TIMESTEPS,
             learning_rate: float = config.LEARNING_RATE,
+            show_validation_images: bool = config.SHOW_VALIDATION_IMAGES,
             sampler: Optional[DiffusionSampler] = None
         ) -> None:
         super().__init__()
@@ -43,6 +44,7 @@ class Unet(LightningModule):
         self.image_channels = image_channels
         self.num_time_embeddings = num_time_embeddings
         self.learning_rate = learning_rate
+        self.validation_images = show_validation_images
 
         self.sampler = sampler if sampler is not None else DiffusionSampler()
 
@@ -137,6 +139,12 @@ class Unet(LightningModule):
         self.log('validation/loss', loss)
         return loss
 
+    def validation_epoch_end(self, outputs):
+        if self.validation_images:
+            print()
+            self.plot_sample()
+            print()
+
     def configure_optimizers(self) -> Any:
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
     
@@ -146,7 +154,7 @@ class Unet(LightningModule):
         img = torch.randn(img_shape, device=self.device)
 
         plt.figure(figsize=(15, 5))
-        num_images = 10
+        num_images = config.NUM_VALIDATION_IMAGES
         stepsize = int(self.timesteps / num_images)
         iterator = range(0, self.timesteps)[::-1]
         print('Diffusion progress:')
