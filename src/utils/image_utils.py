@@ -10,6 +10,9 @@ def show_tensor_image(tensor: Tensor) -> None:
     """
     Displays model output as image
     """
+    if len(tensor.shape) == 4:
+        tensor = tensor[0, :, :, :]
+        
     reverse_transforms = transforms.Compose([
         transforms.Lambda(lambda t: (t + 1) / 2),  # get into [0, 1] scale
         transforms.Lambda(lambda t: t.permute(1, 2, 0)),  # transform shape from CHW to HWC

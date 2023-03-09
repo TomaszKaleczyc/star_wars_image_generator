@@ -45,13 +45,12 @@ class DiffusionSampler:
     def forward_sample(
             self, 
             image: Tensor, 
-            timestep: int,
+            timestep: Tensor,
             device: str = "cpu"
         ) -> Tuple[Tensor, Tensor]:
         """
         Returns the image at noising timestep along with the noise itself
         """
-        timestep = torch.Tensor([timestep]).type(torch.int64).to(device)
         noise = torch.randn_like(image).to(device)
         sqrt_alphas_cumproduct_t = self._get_index_from_list(self.sqrt_alphas_cumproduct, timestep, image.shape)
         sqrt_one_minus_alphas_cumproduct_t = self._get_index_from_list(self.sqrt_one_minus_alphas_cumproduct, timestep, image.shape)

@@ -132,3 +132,4 @@ dmypy.json
 # custom:
 *___*
 data/star-wars-images/*
+output/*

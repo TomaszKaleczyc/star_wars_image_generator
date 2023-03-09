@@ -15,16 +15,12 @@ class PositionEmbeddings(nn.Module):
         super().__init__()
         self.dim = dim
 
-    @property
-    def half_dim(self) -> int:
-        return self.dim // 2
-
     def forward(self, time: Tensor) -> Tensor:
-        # device = time.device
-        embeddings = torch.zeros(self.dim, len(time))
-        position = torch.arange(0, self.dim).unsqueeze(1)
-        div_term = torch.exp((torch.arange(0, len(time), 2, dtype=torch.float) *
-                            -(math.log(10000.0) / len(time))))
+        device = time.device
+        embeddings = torch.zeros(len(time), self.dim, device=device)
+        position = torch.arange(0, len(time)).unsqueeze(1)
+        div_term = torch.exp((torch.arange(0, self.dim, 2, dtype=torch.float) *
+                            - (math.log(10000.0) / self.dim)))
         embeddings[:, 0::2] = torch.sin(position.float() * div_term)
         embeddings[:, 1::2] = torch.cos(position.float() * div_term)
         return embeddings

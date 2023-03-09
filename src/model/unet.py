@@ -1,5 +1,6 @@
 from typing import Any, List, Optional
 
+from tqdm import tqdm
 from matplotlib import pyplot as plt
 
 import torch
@@ -121,18 +122,20 @@ class Unet(LightningModule):
         """
         B = batch.shape[0]
         t = torch.randint(0, self.timesteps, (B,), device=self.device).long()
-        x_noisy, noise = self.sampler.forward_sample(batch[0], t, device=self.device)
+        x_noisy, noise = self.sampler.forward_sample(batch, t, device=self.device)
         noise_prediction = self(x_noisy, t)
         loss = F.l1_loss(noise, noise_prediction)
         return loss        
 
     def training_step(self, batch: Tensor, batch_idx: int) -> Tensor:
         loss = self._loss_step(batch)
-        self.log('training_loss', loss)
+        self.log('training/loss', loss)
+        return loss
     
     def validation_step(self, batch: Tensor, batch_idx: int) -> Tensor:
         loss = self._loss_step(batch)
-        self.log('validation_loss', loss)
+        self.log('validation/loss', loss)
+        return loss
 
     def configure_optimizers(self) -> Any:
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
@@ -140,13 +143,14 @@ class Unet(LightningModule):
     @torch.no_grad()
     def plot_sample(self) -> None:
         img_shape = (1, self.image_channels, self.img_size, self.img_size)
-        img = torch.randn_like(img_shape, device=self.device)
+        img = torch.randn(img_shape, device=self.device)
 
         plt.figure(figsize=(15, 5))
         num_images = 10
         stepsize = int(self.timesteps / num_images)
-
-        for timestep in range(self.timesteps, 0, -1):
+        iterator = range(0, self.timesteps)[::-1]
+        print('Diffusion progress:')
+        for timestep in tqdm(iterator):
             t = torch.full((1,), timestep, device=self.device, dtype=torch.long)
             pred = self(img, t)
             img = self.sampler.sample_timestep(img, pred, t)
