@@ -11,7 +11,7 @@ BATCH_SIZE = 32
 IMAGE_CHANNELS = 3
 
 # diffusion:
-BETA_SCHEDULER = 'linear'  # 'cosine', 'quadratic', 'sigmoid'
+BETA_SCHEDULER = 'cosine'  # 'linear', 'quadratic', 'sigmoid'
 TIMESTEPS = 300
 BETA_START = 1e-4
 BETA_END = 2e-2

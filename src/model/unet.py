@@ -53,6 +53,7 @@ class Unet(LightningModule):
         self.num_time_embeddings = num_time_embeddings
         self.learning_rate = learning_rate
         self.validation_images = show_validation_images
+        print('Loss function:', loss_function)
         self.loss_function = LOSS_FUNCTIONS[loss_function]
 
         self.sampler = sampler if sampler is not None else DiffusionSampler()
