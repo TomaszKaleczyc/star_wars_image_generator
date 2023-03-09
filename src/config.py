@@ -11,7 +11,7 @@ BATCH_SIZE = 32
 IMAGE_CHANNELS = 3
 
 # diffusion:
-BETA_SCHEDULER = 'cosine' # ['linear', 'quadratic', 'sigmoid']
+BETA_SCHEDULER = 'linear'  # 'cosine', 'quadratic', 'sigmoid'
 TIMESTEPS = 300
 BETA_START = 1e-4
 BETA_END = 2e-2
@@ -20,6 +20,7 @@ BETA_END = 2e-2
 NUM_MODULE_LAYERS = 5
 NUM_TIME_EMBEDDINGS = 32
 KERNEL_SIZE = 3
+LOSS_FUNCTION = 'huber'  #'l1', 'l2'
 
 # training:
 NUM_EPOCHS = 100

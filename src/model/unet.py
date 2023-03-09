@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from tqdm.notebook import tqdm
 from matplotlib import pyplot as plt
@@ -19,6 +19,13 @@ from .unet_block import UnetBlock
 import config
 
 
+LOSS_FUNCTIONS: Dict[str, Callable] = dict(
+    l1=F.l1_loss,
+    l2=F.mse_loss,
+    huber=F.smooth_l1_loss,
+)
+
+
 class Unet(LightningModule):
     """
     Basic Unet architecture implementation
@@ -34,6 +41,7 @@ class Unet(LightningModule):
             timesteps: int = config.TIMESTEPS,
             learning_rate: float = config.LEARNING_RATE,
             show_validation_images: bool = config.SHOW_VALIDATION_IMAGES,
+            loss_function: str = config.LOSS_FUNCTION,
             sampler: Optional[DiffusionSampler] = None
         ) -> None:
         super().__init__()
@@ -45,6 +53,7 @@ class Unet(LightningModule):
         self.num_time_embeddings = num_time_embeddings
         self.learning_rate = learning_rate
         self.validation_images = show_validation_images
+        self.loss_function = LOSS_FUNCTIONS[loss_function]
 
         self.sampler = sampler if sampler is not None else DiffusionSampler()
 
@@ -126,9 +135,9 @@ class Unet(LightningModule):
         t = torch.randint(0, self.timesteps, (B,), device=self.device).long()
         x_noisy, noise = self.sampler.forward_sample(batch, t, device=self.device)
         noise_prediction = self(x_noisy, t)
-        loss = F.l1_loss(noise, noise_prediction)
-        return loss        
-
+        loss = self.loss_function(noise, noise_prediction)
+        return loss
+        
     def training_step(self, batch: Tensor, batch_idx: int) -> Tensor:
         loss = self._loss_step(batch)
         self.log('training/loss', loss)
@@ -152,11 +161,12 @@ class Unet(LightningModule):
     def plot_sample(self) -> None:
         img_shape = (1, self.image_channels, self.img_size, self.img_size)
         img = torch.randn(img_shape, device=self.device)
-
-        plt.figure(figsize=(15, 5))
+        
         num_images = config.NUM_VALIDATION_IMAGES
         stepsize = int(self.timesteps / num_images)
         iterator = range(0, self.timesteps)[::-1]
+
+        plt.figure(figsize=(15, 5))
         print('Diffusion progress:')
         for timestep in tqdm(iterator):
             t = torch.full((1,), timestep, device=self.device, dtype=torch.long)
