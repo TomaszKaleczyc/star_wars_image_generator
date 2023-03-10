@@ -1,8 +1,9 @@
 from typing import Tuple
-import torch
 import torch.nn as nn
 
 from torch import Tensor
+
+from .utils import ACTIVATIONS
 
 import config
 
@@ -18,6 +19,7 @@ class UnetBlock(nn.Module):
             output_channels: int,
             num_time_embeddings: int,
             kernel_size: int = config.KERNEL_SIZE,
+            activation: str = config.ACTIVATION,
             upscaling: bool = False
         ) -> None:
         super().__init__()
@@ -25,6 +27,8 @@ class UnetBlock(nn.Module):
         self.output_channels = output_channels
         self.num_time_embeddings = num_time_embeddings
         self.kernel_size = kernel_size
+
+        self.activation = ACTIVATIONS[activation]()
 
         self.time_mlp = nn.Linear(self.num_time_embeddings, self.output_channels)
         self.conv1, self.transform = self._get_block_variants(upscaling)
@@ -35,7 +39,6 @@ class UnetBlock(nn.Module):
                         padding=1
                     )
         
-        self.activation = nn.ReLU()
         self.first_pass = nn.Sequential(
             self.conv1,
             self.activation,

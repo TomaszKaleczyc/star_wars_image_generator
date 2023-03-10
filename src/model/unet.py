@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, List, Optional
 
 from tqdm.notebook import tqdm
 from matplotlib import pyplot as plt
@@ -6,7 +6,6 @@ from matplotlib import pyplot as plt
 import torch
 from torch import Tensor
 import torch.nn as nn
-import torch.nn.functional as F
 
 from pytorch_lightning import LightningModule
 
@@ -15,15 +14,9 @@ from utils import image_utils
 
 from .position_embeddings import PositionEmbeddings
 from .unet_block import UnetBlock
+from .utils import ACTIVATIONS, LOSS_FUNCTIONS
 
 import config
-
-
-LOSS_FUNCTIONS: Dict[str, Callable] = dict(
-    l1=F.l1_loss,
-    l2=F.mse_loss,
-    huber=F.smooth_l1_loss,
-)
 
 
 class Unet(LightningModule):
@@ -42,6 +35,7 @@ class Unet(LightningModule):
             learning_rate: float = config.LEARNING_RATE,
             show_validation_images: bool = config.SHOW_VALIDATION_IMAGES,
             loss_function: str = config.LOSS_FUNCTION,
+            activation: str = config.ACTIVATION,
             sampler: Optional[DiffusionSampler] = None
         ) -> None:
         super().__init__()
@@ -53,10 +47,15 @@ class Unet(LightningModule):
         self.num_time_embeddings = num_time_embeddings
         self.learning_rate = learning_rate
         self.validation_images = show_validation_images
+
+        print('Unet model')
         print('Loss function:', loss_function)
+        print('Activation function:', activation)
         self.loss_function = LOSS_FUNCTIONS[loss_function]
+        self.activation = ACTIVATIONS[activation]()
 
         self.sampler = sampler if sampler is not None else DiffusionSampler()
+        
 
         self.downscaling_channels = self._get_channels()
         self.upscaling_channels = self._get_channels(upscaling=True)
@@ -65,7 +64,7 @@ class Unet(LightningModule):
         self.time_mlp = nn.Sequential(
             PositionEmbeddings(self.num_time_embeddings),
             nn.Linear(self.num_time_embeddings, self.num_time_embeddings),
-            nn.ReLU()
+            self.activation
         )
 
         self.initial_conv = nn.Conv2d(
