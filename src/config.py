@@ -7,8 +7,9 @@ SAVE_PATH = '../output'
 # data:
 DATA_DIR = "../data/star-wars-images/"
 IMG_SIZE = 64
-BATCH_SIZE = 64
+BATCH_SIZE = 128
 IMAGE_CHANNELS = 3
+AUGMENTATIONS_RATIO = 5.
 
 # diffusion:
 BETA_SCHEDULER = 'cosine'  # 'linear', 'quadratic', 'sigmoid'
