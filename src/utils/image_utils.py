@@ -1,6 +1,7 @@
 from matplotlib import pyplot as plt
 import numpy as np
 
+import torch
 from torch import Tensor
 
 from torchvision import transforms
@@ -10,6 +11,7 @@ def show_tensor_image(tensor: Tensor) -> None:
     """
     Displays model output as image
     """
+    tensor = torch.clamp(tensor, -1., 1.)
     if len(tensor.shape) == 4:
         tensor = tensor[0, :, :, :]
         

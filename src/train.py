@@ -2,6 +2,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning import Trainer
 
 from dataset import SWImageDataModule
+from diffusion import DiffusionSampler
 from model import Unet
 
 import config
@@ -9,12 +10,14 @@ import config
 
 data_module = SWImageDataModule()
 
-model = Unet(data_module.img_size)
+diffusion_sampler = DiffusionSampler()
+
+model = Unet(data_module.img_size, sampler=diffusion_sampler)
 
 callbacks = [
     ModelCheckpoint(
         filename='star_wars-{epoch}-{validation/loss:.3f}',
-        monitor='validation/f1', 
+        monitor='validation/loss', 
         save_top_k=1,
         verbose=True, 
         mode='min'

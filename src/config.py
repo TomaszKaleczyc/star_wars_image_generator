@@ -7,7 +7,7 @@ SAVE_PATH = '../output'
 # data:
 DATA_DIR = "../data/star-wars-images/"
 IMG_SIZE = 64
-BATCH_SIZE = 32
+BATCH_SIZE = 64
 IMAGE_CHANNELS = 3
 
 # diffusion:
@@ -20,11 +20,11 @@ BETA_END = 2e-2
 NUM_MODULE_LAYERS = 5
 NUM_TIME_EMBEDDINGS = 32
 KERNEL_SIZE = 3
-LOSS_FUNCTION = 'huber'  #'l1', 'l2'
+LOSS_FUNCTION = 'huber'  # 'l1', 'l2'
 ACTIVATION = 'silu'  # 'relu', 'selu'
 
 # training:
-NUM_EPOCHS = 100
+NUM_EPOCHS = 200
 LEARNING_RATE = 1e-3
 LIMIT_VAL_BATCHES_RATIO = 0.05
 SHOW_VALIDATION_IMAGES = True
