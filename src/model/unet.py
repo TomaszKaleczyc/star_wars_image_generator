@@ -159,6 +159,7 @@ class Unet(LightningModule):
     
     @torch.no_grad()
     def plot_sample(self) -> None:
+        self.eval()
         img_shape = (1, self.image_channels, self.img_size, self.img_size)
         img = torch.randn(img_shape, device=self.device)
         
