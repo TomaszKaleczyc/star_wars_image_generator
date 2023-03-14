@@ -16,21 +16,26 @@ class SWImageDataModule(LightningDataModule):
                 self, 
                 data_dir: str = config.DATA_DIR,
                 img_size: int = config.IMG_SIZE,
-                batch_size: int = config.BATCH_SIZE
+                batch_size: int = config.BATCH_SIZE,
+                verbose: bool = config.VERBOSE
             ) -> None:
         super().__init__()
+        self.dataset_name = 'StarWars_images'
         self.data_dir = data_dir
         self.img_size = img_size
         self.batch_size = batch_size
+        self.verbose = verbose  
 
-        print('='*60)
-        print('TRAINING DATA')
+        if self.verbose:
+            print('='*60)
+            print('TRAINING DATA')
         self.train_dataset = SWImageDataset(
             data_dir=self.data_dir,
             img_size=self.img_size
         )
-        print('='*60)
-        print('VALIDATION DATA')
+        if self.verbose:
+            print('='*60)
+            print('VALIDATION DATA')
         self.val_dataset = SWImageDataset(
             data_dir=self.data_dir,
             img_size=self.img_size,

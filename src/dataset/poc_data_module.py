@@ -1,4 +1,4 @@
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, ConcatDataset
 from pytorch_lightning import LightningDataModule
 
 from torchvision import datasets, transforms
@@ -18,12 +18,15 @@ class PoCDataModule(LightningDataModule):
                 self, 
                 data_dir: str = config.POC_DATA_DIR,
                 img_size: int = config.IMG_SIZE,
-                batch_size: int = config.BATCH_SIZE
+                batch_size: int = config.BATCH_SIZE,
+                verbose: bool = config.VERBOSE
             ) -> None:
         super().__init__()
+        self.dataset_name = 'StanfordCars_images'
         self.data_dir = data_dir
         self.img_size = img_size
-        self.batch_size = batch_size            
+        self.batch_size = batch_size      
+        self.verbose = verbose      
 
         self.data_transforms = transforms.Compose([
                 transforms.Resize((self.img_size, self.img_size)),
@@ -34,6 +37,17 @@ class PoCDataModule(LightningDataModule):
         
         self.train_dataset = self._get_dataset('train')
         self.val_dataset = self._get_dataset('test')
+
+        # combining the datasets since we don't really care about eval metrics:
+        self.train_dataset = ConcatDataset([self.train_dataset, self.val_dataset])
+
+        if self.verbose:
+            print('='*60)
+            print('TRAINING DATA')
+            print(f'{len(self.train_dataset)} images')
+            print('='*60)
+            print('VALIDATION DATA')
+            print(f'{len(self.val_dataset)} images')
 
     def _get_dataset(self, split: str) -> Dataset:
         dataset = datasets.StanfordCars(
