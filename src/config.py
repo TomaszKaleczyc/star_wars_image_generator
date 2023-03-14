@@ -10,7 +10,7 @@ DATA_DIR = "../data/star-wars-images/"
 IMG_SIZE = 64
 BATCH_SIZE = 72
 IMAGE_CHANNELS = 3
-AUGMENTATIONS_RATIO = 5.
+AUGMENTATIONS_RATIO = 4.
 
 # diffusion:
 BETA_SCHEDULER = 'cosine'  # 'linear', 'quadratic', 'sigmoid'
