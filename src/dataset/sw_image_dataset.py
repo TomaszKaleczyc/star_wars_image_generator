@@ -39,17 +39,16 @@ class SWImageDataset(Dataset):
             print(f'Loaded {len(self)} images')
 
         self.augmentations = transforms.Compose([
-            transforms.RandomAutocontrast(.1),
-            transforms.ColorJitter(brightness=.35, contrast=.35, saturation=.35, hue=0.1),
-            transforms.RandomHorizontalFlip(),
             transforms.RandomRotation(4),
+            transforms.RandomResizedCrop(size=self.img_size, scale=(.8, .98)),
+            transforms.RandomHorizontalFlip(),
+            transforms.ColorJitter(brightness=.35, contrast=.35, saturation=.35, hue=0.1),
+            transforms.RandomAutocontrast(.1),
             transforms.RandomEqualize(.1),
-            transforms.RandomResizedCrop(size=self.img_size, scale=(.8, .98))
         ])
 
         self.data_transforms = transforms.Compose([
                 transforms.Resize((self.img_size, self.img_size)),
-                transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(), # scaling to [0, 1]
                 transforms.Lambda(lambda t: (t*2) -1)  # scaling to [-1, 1]
             ])
