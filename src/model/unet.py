@@ -131,6 +131,8 @@ class Unet(LightningModule):
         """
         Standard loss step
         """
+        if isinstance(batch, list):  # workaround for the PoC dset
+            batch = batch[0]
         B = batch.shape[0]
         t = torch.randint(0, self.timesteps, (B,), device=self.device).long()
         x_noisy, noise = self.sampler.forward_sample(batch, t, device=self.device)

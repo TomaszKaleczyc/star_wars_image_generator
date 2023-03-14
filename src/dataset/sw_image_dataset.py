@@ -18,7 +18,8 @@ class SWImageDataset(Dataset):
     """
 
     def __init__(
-            self, data_dir: str = config.DATA_DIR, 
+            self, 
+            data_dir: str = config.DATA_DIR, 
             img_size: int = config.IMG_SIZE,
             verbose: bool = config.VERBOSE,
             augmentations_ratio: float = config.AUGMENTATIONS_RATIO,

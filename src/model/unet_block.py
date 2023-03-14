@@ -114,7 +114,7 @@ class UnetBlock(nn.Module):
 
         # residual connection:
         x_h += self.residual_connection(x)
-        x_h = self.batch_norm(self.activation(x_h))
+        x_h = self.batch_norm(x_h)
 
         # Down / upscale
         output = self.transform(x_h)
