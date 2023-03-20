@@ -12,9 +12,9 @@ from pytorch_lightning import LightningModule
 from diffusion import DiffusionSampler
 from utils import image_utils
 
-from .position_embeddings import PositionEmbeddings
 from .unet_block import UnetBlock
-from .utils import ACTIVATIONS, LOSS_FUNCTIONS
+from ..position_embeddings import PositionEmbeddings
+from ..utils import ACTIVATIONS, LOSS_FUNCTIONS
 
 import config
 

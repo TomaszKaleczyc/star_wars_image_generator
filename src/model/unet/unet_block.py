@@ -3,7 +3,7 @@ import torch.nn as nn
 
 from torch import Tensor
 
-from .utils import ACTIVATIONS
+from ..utils import ACTIVATIONS
 
 import config
 

@@ -134,3 +134,4 @@ dmypy.json
 data/star-wars-images/*
 data/stanford-cars/*
 output/*
+.vscode/*

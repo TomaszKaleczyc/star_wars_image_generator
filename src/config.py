@@ -28,7 +28,7 @@ LOSS_FUNCTION = 'huber'  # 'l1', 'l2'
 ACTIVATION = 'silu'  # 'relu', 'selu'
 
 # training:
-NUM_EPOCHS = 150
+NUM_EPOCHS = 200
 # LEARNING_RATE = 1e-3
 LEARNING_RATE = 5e-4
 LIMIT_VAL_BATCHES_RATIO = 0.05

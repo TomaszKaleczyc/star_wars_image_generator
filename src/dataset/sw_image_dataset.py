@@ -42,7 +42,7 @@ class SWImageDataset(Dataset):
             transforms.RandomRotation(4),
             transforms.RandomResizedCrop(size=self.img_size, scale=(.8, .98)),
             transforms.RandomHorizontalFlip(),
-            transforms.ColorJitter(brightness=.35, contrast=.35, saturation=.35, hue=0.1),
+            transforms.ColorJitter(brightness=.35, contrast=.35, saturation=.35, hue=.1),
             transforms.RandomAutocontrast(.1),
             transforms.RandomEqualize(.1),
         ])
