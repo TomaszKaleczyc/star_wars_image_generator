@@ -25,7 +25,7 @@ NUM_MODULE_LAYERS = 5
 NUM_TIME_EMBEDDINGS = 32
 KERNEL_SIZE = 3
 LOSS_FUNCTION = 'huber'  # 'l1', 'l2'
-ACTIVATION = 'silu'  # 'relu', 'selu'
+ACTIVATION = 'gelu' #'silu' 'relu' 'selu'
 POSITION_EMBEDDINGS = 'sinusoidal_learned' # 'sinusoidal'
 
 # training:

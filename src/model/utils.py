@@ -15,4 +15,5 @@ ACTIVATIONS: Dict[str, Callable] = {
     'relu': nn.ReLU,
     'silu': nn.SiLU,
     'selu': nn.SELU,
+    'gelu': nn.GELU,
 }

@@ -1,3 +1,4 @@
+einops==0.6.0
 ipykernel
 ipywidgets
 kaggle==1.5.12
