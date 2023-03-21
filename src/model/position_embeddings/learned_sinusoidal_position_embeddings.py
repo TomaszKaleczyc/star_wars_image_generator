@@ -14,6 +14,7 @@ class LearnedSinusoidalPositionEmbeddings(nn.Module):
         half_dim = dim // 2
         self.add_original_time = add_original_time
         self.weights = nn.Parameter(torch.randn(half_dim))
+        self.dim = dim + 1 * int(self.add_original_time)
 
     def forward(self, time: Tensor) -> Tensor:
         time = einops.rearrange(time, 'b -> b 1')
