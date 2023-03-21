@@ -9,7 +9,7 @@ import torch.nn as nn
 
 from pytorch_lightning import LightningModule
 
-from diffusion import DiffusionSampler
+from diffusion import DiffusionSampler, DEFAULT_DIFFUSION_SAMPLER
 from utils import image_utils
 
 from .unet_block import UnetBlock
@@ -23,11 +23,12 @@ class Unet(LightningModule):
     """
     Basic Unet architecture implementation
     """
-    sampler: DiffusionSampler
+    diffusion_sampler: DiffusionSampler
     
     def __init__(
             self, 
             img_size: int,
+            diffusion_sampler: Optional[DiffusionSampler] = None,
             num_module_layers: int = config.NUM_MODULE_LAYERS,
             image_channels: int = config.IMAGE_CHANNELS,
             num_time_embeddings: int = config.NUM_TIME_EMBEDDINGS,
@@ -36,7 +37,6 @@ class Unet(LightningModule):
             show_validation_images: bool = config.SHOW_VALIDATION_IMAGES,
             loss_function: str = config.LOSS_FUNCTION,
             activation: str = config.ACTIVATION,
-            sampler: Optional[DiffusionSampler] = None
         ) -> None:
         super().__init__()
         self.save_hyperparameters()
@@ -53,10 +53,8 @@ class Unet(LightningModule):
         print('Activation function:', activation)
         self.loss_function = LOSS_FUNCTIONS[loss_function]
         self.activation = ACTIVATIONS[activation]()
-
-        self.sampler = sampler if sampler is not None else DiffusionSampler()
+        self.diffusion_sampler = diffusion_sampler if diffusion_sampler else DEFAULT_DIFFUSION_SAMPLER
         
-
         self.downscaling_channels = self._get_channels()
         self.upscaling_channels = self._get_channels(upscaling=True)
 
@@ -134,8 +132,8 @@ class Unet(LightningModule):
         if isinstance(batch, list):  # workaround for the PoC dset
             batch = batch[0]
         B = batch.shape[0]
-        t = torch.randint(0, self.timesteps, (B,), device=self.device).long()
-        x_noisy, noise = self.sampler.forward_sample(batch, t, device=self.device)
+        t = self.diffusion_sampler.get_batch_timesteps(batch_size=B, device=self.device)
+        x_noisy, noise = self.diffusion_sampler.forward_sample(batch, t, device=self.device)
         noise_prediction = self(x_noisy, t)
         loss = self.loss_function(noise, noise_prediction)
         return loss
@@ -174,7 +172,7 @@ class Unet(LightningModule):
         for timestep in tqdm(iterator):
             t = torch.full((1,), timestep, device=self.device, dtype=torch.long)
             pred = self(img, t)
-            img = self.sampler.sample_timestep(img, pred, t)
+            img = self.diffusion_sampler.sample_timestep(img, pred, t)
             if timestep % stepsize == 0:
                 ax = plt.subplot(1, num_images, timestep // stepsize + 1)
                 image_utils.show_tensor_image(img.detach().cpu())

@@ -1,1 +1,4 @@
 from .diffusion_sampler import DiffusionSampler
+from .discrete_diffusion_sampler import DiscreteDiffusionSampler
+
+DEFAULT_DIFFUSION_SAMPLER = DiscreteDiffusionSampler
