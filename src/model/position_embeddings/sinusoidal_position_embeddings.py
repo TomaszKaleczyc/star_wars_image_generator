@@ -6,10 +6,7 @@ import torch.nn as nn
 from torch import Tensor
 
 
-class PositionEmbeddings(nn.Module):
-    """
-    Sinusoidal position embeddings
-    """
+class SinusoidalPositionEmbeddings(nn.Module):
 
     def __init__(self, dim: int) -> None:
         super().__init__()

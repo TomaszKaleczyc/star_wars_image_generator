@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Tuple
 
 import torch
 from torch import Tensor
@@ -13,6 +13,7 @@ import config
 class DiscreteDiffusionSampler(DiffusionSampler):
     """
     Handles the diffusion process
+    using discrete timesteps for training
     """
 
     def __init__(

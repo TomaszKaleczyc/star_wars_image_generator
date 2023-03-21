@@ -13,7 +13,7 @@ from diffusion import DiffusionSampler, DEFAULT_DIFFUSION_SAMPLER
 from utils import image_utils
 
 from .unet_block import UnetBlock
-from ..position_embeddings import PositionEmbeddings
+from ..position_embeddings import POSITION_EMBEDDINGS
 from ..utils import ACTIVATIONS, LOSS_FUNCTIONS
 
 import config
@@ -37,6 +37,7 @@ class Unet(LightningModule):
             show_validation_images: bool = config.SHOW_VALIDATION_IMAGES,
             loss_function: str = config.LOSS_FUNCTION,
             activation: str = config.ACTIVATION,
+            position_embeddings: str = config.POSITION_EMBEDDINGS
         ) -> None:
         super().__init__()
         self.save_hyperparameters()
@@ -47,6 +48,7 @@ class Unet(LightningModule):
         self.num_time_embeddings = num_time_embeddings
         self.learning_rate = learning_rate
         self.validation_images = show_validation_images
+        self.position_embeddings = position_embeddings
 
         print('Unet model')
         print('Loss function:', loss_function)
@@ -60,7 +62,7 @@ class Unet(LightningModule):
 
         # time embeddings:
         self.time_mlp = nn.Sequential(
-            PositionEmbeddings(self.num_time_embeddings),
+            POSITION_EMBEDDINGS[self.position_embeddings](self.num_time_embeddings),
             nn.Linear(self.num_time_embeddings, self.num_time_embeddings),
             self.activation
         )
