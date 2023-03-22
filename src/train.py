@@ -3,7 +3,7 @@ from pytorch_lightning import Trainer
 
 from dataset import SWImageDataModule
 from diffusion import DEFAULT_DIFFUSION_SAMPLER
-from model import Unet
+from model import MODELS
 
 import config
 
@@ -12,7 +12,9 @@ data_module = SWImageDataModule()
 
 diffusion_sampler = DEFAULT_DIFFUSION_SAMPLER()
 
-model = Unet(data_module.img_size, diffusion_sampler=diffusion_sampler)
+model_type = MODELS[config.MODEL_TYPE]
+
+model = model_type(data_module.img_size, diffusion_sampler=diffusion_sampler)
 
 callbacks = [
     ModelCheckpoint(

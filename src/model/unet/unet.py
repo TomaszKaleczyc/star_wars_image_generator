@@ -37,7 +37,8 @@ class Unet(LightningModule):
             show_validation_images: bool = config.SHOW_VALIDATION_IMAGES,
             loss_function: str = config.LOSS_FUNCTION,
             activation: str = config.ACTIVATION,
-            position_embeddings: str = config.POSITION_EMBEDDINGS
+            position_embeddings: str = config.POSITION_EMBEDDINGS,
+            verbose: bool = config.VERBOSE
         ) -> None:
         super().__init__()
         self.save_hyperparameters()
@@ -49,10 +50,13 @@ class Unet(LightningModule):
         self.learning_rate = learning_rate
         self.validation_images = show_validation_images
         self.position_embeddings = position_embeddings
+        self.verbose = verbose
 
-        print('Unet model')
-        print('Loss function:', loss_function)
-        print('Activation function:', activation)
+        if self.verbose:
+            print('Unet model')
+            print('Loss function:', loss_function)
+            print('Activation function:', activation)
+            print('Position embeddings', position_embeddings)
         self.loss_function = LOSS_FUNCTIONS[loss_function]
         self.activation = ACTIVATIONS[activation]()
         self.diffusion_sampler = diffusion_sampler if diffusion_sampler else DEFAULT_DIFFUSION_SAMPLER
@@ -61,8 +65,9 @@ class Unet(LightningModule):
         self.upscaling_channels = self._get_channels(upscaling=True)
 
         # time embeddings:
+        position_embeddings = POSITION_EMBEDDINGS[self.position_embeddings](self.num_time_embeddings)
         self.time_mlp = nn.Sequential(
-            POSITION_EMBEDDINGS[self.position_embeddings](self.num_time_embeddings),
+            position_embeddings,
             nn.Linear(self.num_time_embeddings, self.num_time_embeddings),
             self.activation
         )
