@@ -14,7 +14,7 @@ from .gamma_layer_norm import GammaLayerNorm
 import config
 
 
-class LinearAttention(nn.Module):
+class LinearAttentionBlock(nn.Module):
     def __init__(
             self,
             dim: int,

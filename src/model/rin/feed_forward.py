@@ -19,7 +19,8 @@ class FeedForward(nn.Module):
 
     def __init__(
             self, 
-            dim: int, mult: int = 4, 
+            dim: int, 
+            multiplier: int = 4, 
             time_cond_dim: Optional[int] = None,
             activation: str = config.ACTIVATION,
         ) -> None:
@@ -39,7 +40,7 @@ class FeedForward(nn.Module):
             nn.init.zeros_(self.time_cond[-2].weight)
             nn.init.zeros_(self.time_cond[-2].bias)
 
-        inner_dim = int(dim * mult)
+        inner_dim = int(dim * multiplier)
         self.net = nn.Sequential(
             nn.Linear(dim, inner_dim),
             self.activation,

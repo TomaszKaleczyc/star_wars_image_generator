@@ -16,11 +16,14 @@ model_type = MODELS[config.MODEL_TYPE]
 
 model = model_type(data_module.img_size, diffusion_sampler=diffusion_sampler)
 
+monitor_metric = f'validation/{config.LOSS_FUNCTION}_loss'
+filename = 'star_wars-{epoch}-{' + monitor_metric + ':.3f}'
 callbacks = [
     ModelCheckpoint(
-        filename='star_wars-{epoch}-{validation/loss:.3f}',
-        monitor='validation/loss', 
+        filename=filename,
+        monitor=monitor_metric, 
         save_top_k=1,
+        save_last=True,
         verbose=True, 
         mode='min'
     ),

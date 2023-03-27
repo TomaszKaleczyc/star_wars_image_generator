@@ -165,7 +165,7 @@ class Unet(LightningModule):
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
     
     @torch.no_grad()
-    def plot_samples(self, num_samples: int = 4) -> None:
+    def plot_samples(self, num_samples: int = config.NUM_VALIDATION_IMAGES) -> None:
         """
         Plots random generated output samples
         """
@@ -176,6 +176,7 @@ class Unet(LightningModule):
         filepath = f"{file_dir}/{filename}.jpg"
         n_rows = int(num_samples**0.5)
         utils.save_image(imgs_tensor, fp=filepath, nrow=n_rows)
+        print(f'Samples saved to {filepath}')
 
     @torch.no_grad()
     def _get_sample_batch(self, batch_size: int) -> Tensor:
