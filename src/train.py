@@ -3,7 +3,7 @@ from pytorch_lightning import Trainer
 
 from dataset import SWImageDataModule
 from diffusion import DEFAULT_DIFFUSION_SAMPLER
-from model import MODELS
+from model import MODELS, callbacks
 
 import config
 
@@ -24,6 +24,7 @@ callbacks = [
         verbose=True, 
         mode='min'
     ),
+    callbacks.SaveConfig(),
 ]
 
 trainer = Trainer(

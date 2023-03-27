@@ -1,16 +1,15 @@
 from typing import Any, List, Optional
 
-from tqdm.notebook import tqdm
-from matplotlib import pyplot as plt
+from tqdm import tqdm
 
 import torch
 from torch import Tensor
 import torch.nn as nn
+from torchvision import utils
 
 from pytorch_lightning import LightningModule
 
 from diffusion import DiffusionSampler, DEFAULT_DIFFUSION_SAMPLER
-from utils import image_utils
 
 from .unet_block import UnetBlock
 from ..position_embeddings import POSITION_EMBEDDINGS
@@ -35,7 +34,7 @@ class Unet(LightningModule):
             timesteps: int = config.TIMESTEPS,
             learning_rate: float = config.LEARNING_RATE,
             show_validation_images: bool = config.SHOW_VALIDATION_IMAGES,
-            loss_function: str = config.LOSS_FUNCTION,
+            loss_function_name: str = config.LOSS_FUNCTION,
             activation: str = config.ACTIVATION,
             position_embeddings: str = config.POSITION_EMBEDDINGS,
             verbose: bool = config.VERBOSE
@@ -50,14 +49,15 @@ class Unet(LightningModule):
         self.learning_rate = learning_rate
         self.validation_images = show_validation_images
         self.position_embeddings = position_embeddings
+        self.loss_function_name = loss_function_name
         self.verbose = verbose
 
         if self.verbose:
             print('Unet model')
-            print('Loss function:', loss_function)
+            print('Loss function:', self.loss_function_name )
             print('Activation function:', activation)
             print('Position embeddings', position_embeddings)
-        self.loss_function = LOSS_FUNCTIONS[loss_function]
+        self.loss_function = LOSS_FUNCTIONS[self.loss_function_name ]
         self.activation = ACTIVATIONS[activation]()
         self.diffusion_sampler = diffusion_sampler if diffusion_sampler else DEFAULT_DIFFUSION_SAMPLER
         
@@ -147,42 +147,47 @@ class Unet(LightningModule):
         
     def training_step(self, batch: Tensor, batch_idx: int) -> Tensor:
         loss = self._loss_step(batch)
-        self.log('training/loss', loss)
+        self.log(f'training/{self.loss_function_name}_loss', loss)
         return loss
     
     def validation_step(self, batch: Tensor, batch_idx: int) -> Tensor:
         loss = self._loss_step(batch)
-        self.log('validation/loss', loss)
+        self.log(f'validation/{self.loss_function_name}_loss', loss)
         return loss
 
     def validation_epoch_end(self, outputs):
         if self.validation_images:
             print()
-            self.plot_sample()
+            self.plot_samples()
             print()
 
     def configure_optimizers(self) -> Any:
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
     
     @torch.no_grad()
-    def plot_sample(self) -> None:
+    def plot_samples(self, num_samples: int = 4) -> None:
+        """
+        Plots random generated output samples
+        """
         self.eval()
-        img_shape = (1, self.image_channels, self.img_size, self.img_size)
-        img = torch.randn(img_shape, device=self.device)
-        
-        num_images = config.NUM_VALIDATION_IMAGES
-        stepsize = int(self.timesteps / num_images)
-        iterator = range(0, self.timesteps)[::-1]
+        imgs_tensor = self._get_sample_batch(num_samples)
+        file_dir = self.trainer.log_dir
+        filename = f"random_samples_step_{self.trainer.global_step}"
+        filepath = f"{file_dir}/{filename}.jpg"
+        n_rows = int(num_samples**0.5)
+        utils.save_image(imgs_tensor, fp=filepath, nrow=n_rows)
 
-        plt.figure(figsize=(15, 5))
+    @torch.no_grad()
+    def _get_sample_batch(self, batch_size: int) -> Tensor:
+        """
+        Retrieves the complete denoised batch samples
+        """
+        img_shape = (batch_size, self.image_channels, self.img_size, self.img_size)
+        img = torch.randn(img_shape, device=self.device)
+        iterator = range(0, self.timesteps)[::-1]
         print('Diffusion progress:')
         for timestep in tqdm(iterator):
-            t = torch.full((1,), timestep, device=self.device, dtype=torch.long)
+            t = torch.full((batch_size,), timestep, device=self.device, dtype=torch.long)
             pred = self(img, t)
             img = self.diffusion_sampler.sample_timestep(img, pred, t)
-            if timestep % stepsize == 0:
-                ax = plt.subplot(1, num_images, timestep // stepsize + 1)
-                image_utils.show_tensor_image(img.detach().cpu())
-                ax.title.set_text(f'T {timestep}')
-                ax.axis('off')
-        plt.show()
+        return img
