@@ -1,17 +1,15 @@
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning import Trainer
 
-from dataset import SWImageDataModule
-from diffusion import DEFAULT_DIFFUSION_SAMPLER
+from dataset import DATASETS
+from diffusion import DIFFUSION_SAMPLERS
 from model import MODELS, callbacks
 
 import config
 
 
-data_module = SWImageDataModule()
-
-diffusion_sampler = DEFAULT_DIFFUSION_SAMPLER()
-
+data_module = DATASETS[config.DATASET]()
+diffusion_sampler = DIFFUSION_SAMPLERS[config.DIFFUSION_SAMPLER]()
 model_type = MODELS[config.MODEL_TYPE]
 
 model = model_type(data_module.img_size, diffusion_sampler=diffusion_sampler)

@@ -101,7 +101,7 @@ class DiscreteDiffusionSampler(DiffusionSampler):
         model_mean = sqrt_recip_alphas_t * (
             x - betas_t * pred / sqrt_one_minus_alphas_cumproduct_t
         )
-        if t == 0:
+        if t[0] == 0:
             return model_mean
         
         noise = torch.randn_like(x)

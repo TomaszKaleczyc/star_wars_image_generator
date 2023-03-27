@@ -22,7 +22,13 @@ class PositionalEncodingGenerator(nn.Module):
             latent_width: int
         ) -> None:
         super().__init__()
-        self.ds_conv = nn.Conv2d(latent_width, latent_width, 3, padding = 1, groups = latent_width)
+        self.ds_conv = nn.Conv2d(
+            in_channels = latent_width, 
+            out_channels = latent_width, 
+            kernel_size=3, 
+            padding = 1, 
+            groups = latent_width
+            )
 
     def forward(self, x: Tensor) -> Tensor:
         b, n, d = x.shape
