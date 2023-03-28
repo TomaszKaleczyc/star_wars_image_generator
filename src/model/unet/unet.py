@@ -5,20 +5,22 @@ from tqdm import tqdm
 import torch
 from torch import Tensor
 import torch.nn as nn
-from torchvision import utils
+from torchmetrics import MeanMetric
 
 from pytorch_lightning import LightningModule
 
 from diffusion import DiffusionSampler, DEFAULT_DIFFUSION_SAMPLER
 
+from model.base_model import BaseModel
+from model.position_embeddings import POSITION_EMBEDDINGS
+from model.utils import ACTIVATIONS, LOSS_FUNCTIONS
+
 from .unet_block import UnetBlock
-from ..position_embeddings import POSITION_EMBEDDINGS
-from ..utils import ACTIVATIONS, LOSS_FUNCTIONS
 
 import config
 
 
-class Unet(LightningModule):
+class Unet(LightningModule, BaseModel):
     """
     Basic Unet architecture implementation
     """
@@ -41,22 +43,19 @@ class Unet(LightningModule):
         ) -> None:
         super().__init__()
         self.save_hyperparameters()
+
+        self.train_loss = MeanMetric()
         self.img_size = img_size
         self.num_module_layers = num_module_layers
         self.timesteps = timesteps
         self.image_channels = image_channels
         self.num_time_embeddings = num_time_embeddings
         self.learning_rate = learning_rate
-        self.validation_images = show_validation_images
+        self.show_validation_images = show_validation_images
         self.position_embeddings = position_embeddings
         self.loss_function_name = loss_function_name
         self.verbose = verbose
 
-        if self.verbose:
-            print('Unet model')
-            print('Loss function:', self.loss_function_name )
-            print('Activation function:', activation)
-            print('Position embeddings', position_embeddings)
         self.loss_function = LOSS_FUNCTIONS[self.loss_function_name ]
         self.activation = ACTIVATIONS[activation]()
         self.diffusion_sampler = diffusion_sampler if diffusion_sampler else DEFAULT_DIFFUSION_SAMPLER
@@ -143,41 +142,20 @@ class Unet(LightningModule):
         x_noisy, noise = self.diffusion_sampler.forward_sample(batch, t, device=self.device)
         noise_prediction = self(x_noisy, t)
         loss = self.loss_function(noise, noise_prediction)
+        self.train_loss.update(loss)
         return loss
         
     def training_step(self, batch: Tensor, batch_idx: int) -> Tensor:
         loss = self._loss_step(batch)
-        self.log(f'training/{self.loss_function_name}_loss', loss)
+        self.log(f'{self.loss_function_name}_loss', loss)
         return loss
     
-    def validation_step(self, batch: Tensor, batch_idx: int) -> Tensor:
-        loss = self._loss_step(batch)
-        self.log(f'validation/{self.loss_function_name}_loss', loss)
-        return loss
-
-    def validation_epoch_end(self, outputs):
-        if self.validation_images:
-            print()
-            self.plot_samples()
-            print()
+    def training_epoch_end(self, training_step_outputs) -> None:
+        self._training_epoch_end()       
 
     def configure_optimizers(self) -> Any:
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
     
-    @torch.no_grad()
-    def plot_samples(self, num_samples: int = config.NUM_VALIDATION_IMAGES) -> None:
-        """
-        Plots random generated output samples
-        """
-        self.eval()
-        imgs_tensor = self._get_sample_batch(num_samples)
-        file_dir = self.trainer.log_dir
-        filename = f"random_samples_step_{self.trainer.global_step}"
-        filepath = f"{file_dir}/{filename}.jpg"
-        n_rows = int(num_samples**0.5)
-        utils.save_image(imgs_tensor, fp=filepath, nrow=n_rows)
-        print(f'Samples saved to {filepath}')
-
     @torch.no_grad()
     def _get_sample_batch(self, batch_size: int) -> Tensor:
         """

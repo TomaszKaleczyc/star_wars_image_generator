@@ -11,4 +11,5 @@ pytorch-lightning==1.9.2
 scipy==1.24.2
 tensorboard
 torch==1.13.1
+torchmetrics==0.11.3
 torchvision==0.14.1

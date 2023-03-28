@@ -45,9 +45,6 @@ class PoCDataModule(LightningDataModule):
             print('='*60)
             print('TRAINING DATA')
             print(f'{len(self.train_dataset)} images')
-            print('='*60)
-            print('VALIDATION DATA')
-            print(f'{len(self.val_dataset)} images')
 
     def _get_dataset(self, split: str) -> Dataset:
         dataset = datasets.StanfordCars(
@@ -65,14 +62,9 @@ class PoCDataModule(LightningDataModule):
             shuffle=True, 
             num_workers=config.NUM_WORKERS
             )
-    
-    def val_dataloader(self) -> DataLoader:
-        return DataLoader(
-            self.val_dataset, 
-            batch_size=self.batch_size, 
-            shuffle=False, 
-            num_workers=config.NUM_WORKERS
-            )
+   
+    def val_dataloader(self) -> None:
+        return
 
     def test_dataloader(self) -> DataLoader:
         raise NotImplementedError

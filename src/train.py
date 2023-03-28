@@ -14,8 +14,8 @@ model_type = MODELS[config.MODEL_TYPE]
 
 model = model_type(data_module.img_size, diffusion_sampler=diffusion_sampler)
 
-monitor_metric = f'validation/{config.LOSS_FUNCTION}_loss'
-filename = 'star_wars-{epoch}-{' + monitor_metric + ':.3f}'
+monitor_metric = f'mean_epoch_{config.LOSS_FUNCTION}_loss'
+filename = config.DATASET + '-{epoch}-{' + monitor_metric + ':.3f}'
 callbacks = [
     ModelCheckpoint(
         filename=filename,
@@ -25,7 +25,7 @@ callbacks = [
         verbose=True, 
         mode='min'
     ),
-    callbacks.SaveConfig(),
+    callbacks.PrepareExperimentFolder(),
 ]
 
 trainer = Trainer(
