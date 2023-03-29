@@ -1,25 +1,26 @@
 from typing import Any, List, Optional
 
-from tqdm.notebook import tqdm
-from matplotlib import pyplot as plt
+from tqdm import tqdm
 
 import torch
 from torch import Tensor
 import torch.nn as nn
+from torchmetrics import MeanMetric
 
 from pytorch_lightning import LightningModule
 
 from diffusion import DiffusionSampler, DEFAULT_DIFFUSION_SAMPLER
-from utils import image_utils
+
+from model.base_model import BaseModel
+from model.position_embeddings import POSITION_EMBEDDINGS
+from model.utils import ACTIVATIONS, LOSS_FUNCTIONS
 
 from .unet_block import UnetBlock
-from ..position_embeddings import POSITION_EMBEDDINGS
-from ..utils import ACTIVATIONS, LOSS_FUNCTIONS
 
 import config
 
 
-class Unet(LightningModule):
+class Unet(LightningModule, BaseModel):
     """
     Basic Unet architecture implementation
     """
@@ -35,25 +36,27 @@ class Unet(LightningModule):
             timesteps: int = config.TIMESTEPS,
             learning_rate: float = config.LEARNING_RATE,
             show_validation_images: bool = config.SHOW_VALIDATION_IMAGES,
-            loss_function: str = config.LOSS_FUNCTION,
+            loss_function_name: str = config.LOSS_FUNCTION,
             activation: str = config.ACTIVATION,
-            position_embeddings: str = config.POSITION_EMBEDDINGS
+            position_embeddings: str = config.POSITION_EMBEDDINGS,
+            verbose: bool = config.VERBOSE
         ) -> None:
         super().__init__()
         self.save_hyperparameters()
+
+        self.train_loss = MeanMetric()
         self.img_size = img_size
         self.num_module_layers = num_module_layers
         self.timesteps = timesteps
         self.image_channels = image_channels
         self.num_time_embeddings = num_time_embeddings
         self.learning_rate = learning_rate
-        self.validation_images = show_validation_images
+        self.show_validation_images = show_validation_images
         self.position_embeddings = position_embeddings
+        self.loss_function_name = loss_function_name
+        self.verbose = verbose
 
-        print('Unet model')
-        print('Loss function:', loss_function)
-        print('Activation function:', activation)
-        self.loss_function = LOSS_FUNCTIONS[loss_function]
+        self.loss_function = LOSS_FUNCTIONS[self.loss_function_name ]
         self.activation = ACTIVATIONS[activation]()
         self.diffusion_sampler = diffusion_sampler if diffusion_sampler else DEFAULT_DIFFUSION_SAMPLER
         
@@ -61,8 +64,9 @@ class Unet(LightningModule):
         self.upscaling_channels = self._get_channels(upscaling=True)
 
         # time embeddings:
+        position_embeddings = POSITION_EMBEDDINGS[self.position_embeddings](self.num_time_embeddings)
         self.time_mlp = nn.Sequential(
-            POSITION_EMBEDDINGS[self.position_embeddings](self.num_time_embeddings),
+            position_embeddings,
             nn.Linear(self.num_time_embeddings, self.num_time_embeddings),
             self.activation
         )
@@ -138,46 +142,31 @@ class Unet(LightningModule):
         x_noisy, noise = self.diffusion_sampler.forward_sample(batch, t, device=self.device)
         noise_prediction = self(x_noisy, t)
         loss = self.loss_function(noise, noise_prediction)
+        self.train_loss.update(loss)
         return loss
         
     def training_step(self, batch: Tensor, batch_idx: int) -> Tensor:
         loss = self._loss_step(batch)
-        self.log('training/loss', loss)
+        self.log(f'{self.loss_function_name}_loss', loss)
         return loss
     
-    def validation_step(self, batch: Tensor, batch_idx: int) -> Tensor:
-        loss = self._loss_step(batch)
-        self.log('validation/loss', loss)
-        return loss
-
-    def validation_epoch_end(self, outputs):
-        if self.validation_images:
-            print()
-            self.plot_sample()
-            print()
+    def training_epoch_end(self, training_step_outputs) -> None:
+        self._training_epoch_end()       
 
     def configure_optimizers(self) -> Any:
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
     
     @torch.no_grad()
-    def plot_sample(self) -> None:
-        self.eval()
-        img_shape = (1, self.image_channels, self.img_size, self.img_size)
+    def _get_sample_batch(self, batch_size: int) -> Tensor:
+        """
+        Retrieves the complete denoised batch samples
+        """
+        img_shape = (batch_size, self.image_channels, self.img_size, self.img_size)
         img = torch.randn(img_shape, device=self.device)
-        
-        num_images = config.NUM_VALIDATION_IMAGES
-        stepsize = int(self.timesteps / num_images)
         iterator = range(0, self.timesteps)[::-1]
-
-        plt.figure(figsize=(15, 5))
         print('Diffusion progress:')
         for timestep in tqdm(iterator):
-            t = torch.full((1,), timestep, device=self.device, dtype=torch.long)
+            t = torch.full((batch_size,), timestep, device=self.device, dtype=torch.long)
             pred = self(img, t)
             img = self.diffusion_sampler.sample_timestep(img, pred, t)
-            if timestep % stepsize == 0:
-                ax = plt.subplot(1, num_images, timestep // stepsize + 1)
-                image_utils.show_tensor_image(img.detach().cpu())
-                ax.title.set_text(f'T {timestep}')
-                ax.axis('off')
-        plt.show()
+        return img

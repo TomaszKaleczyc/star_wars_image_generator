@@ -1,27 +1,31 @@
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning import Trainer
 
-from dataset import SWImageDataModule
-from diffusion import DEFAULT_DIFFUSION_SAMPLER
-from model import Unet
+from dataset import DATASETS
+from diffusion import DIFFUSION_SAMPLERS
+from model import MODELS, callbacks
 
 import config
 
 
-data_module = SWImageDataModule()
+data_module = DATASETS[config.DATASET]()
+diffusion_sampler = DIFFUSION_SAMPLERS[config.DIFFUSION_SAMPLER]()
+model_type = MODELS[config.MODEL_TYPE]
 
-diffusion_sampler = DEFAULT_DIFFUSION_SAMPLER()
+model = model_type(data_module.img_size, diffusion_sampler=diffusion_sampler)
 
-model = Unet(data_module.img_size, diffusion_sampler=diffusion_sampler)
-
+monitor_metric = f'mean_epoch_{config.LOSS_FUNCTION}_loss'
+filename = config.DATASET + '-{epoch}-{' + monitor_metric + ':.3f}'
 callbacks = [
     ModelCheckpoint(
-        filename='star_wars-{epoch}-{validation/loss:.3f}',
-        monitor='validation/loss', 
+        filename=filename,
+        monitor=monitor_metric, 
         save_top_k=1,
+        save_last=True,
         verbose=True, 
         mode='min'
     ),
+    callbacks.PrepareExperimentFolder(),
 ]
 
 trainer = Trainer(

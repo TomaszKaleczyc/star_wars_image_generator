@@ -26,7 +26,7 @@ download-dataset:
 	unzip star-wars-images.zip -d star-wars-images && \
 	rm star-wars-images.zip 
 
-run-training:
+train:
 	. $(VENV_ACTIVATE_PATH) && \
 	cd src/ && \
 	python train.py

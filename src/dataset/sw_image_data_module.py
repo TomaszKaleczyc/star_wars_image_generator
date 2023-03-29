@@ -29,17 +29,10 @@ class SWImageDataModule(LightningDataModule):
         if self.verbose:
             print('='*60)
             print('TRAINING DATA')
+
         self.train_dataset = SWImageDataset(
             data_dir=self.data_dir,
             img_size=self.img_size
-        )
-        if self.verbose:
-            print('='*60)
-            print('VALIDATION DATA')
-        self.val_dataset = SWImageDataset(
-            data_dir=self.data_dir,
-            img_size=self.img_size,
-            augmentations_ratio=0,
         )
 
     def train_dataloader(self) -> DataLoader:
@@ -50,13 +43,8 @@ class SWImageDataModule(LightningDataModule):
             num_workers=config.NUM_WORKERS
             )
     
-    def val_dataloader(self) -> DataLoader:
-        return DataLoader(
-            self.val_dataset, 
-            batch_size=self.batch_size, 
-            shuffle=False, 
-            num_workers=config.NUM_WORKERS
-            )
+    def val_dataloader(self) -> None:
+        return
 
     def test_dataloader(self) -> DataLoader:
         raise NotImplementedError
