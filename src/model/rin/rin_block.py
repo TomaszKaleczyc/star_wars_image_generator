@@ -18,11 +18,14 @@ class RINBlock(nn.Module):
             self,
             patches_width: int,
             latent_width: int,
-            latent_self_attn_depth: int,
+            latent_self_attention_depth: int,
+            patches_self_attention_depth: int,
             final_norm: bool = True,
             **attn_kwargs
         ) -> None:
         super().__init__()
+        self.patches_peg = PositionalEncodingGenerator(patches_width)
+
         self.latents_attend_to_patches = AttentionBlock(
             latent_width, 
             dim_context = patches_width, 
@@ -32,18 +35,19 @@ class RINBlock(nn.Module):
             )
         self.latents_cross_attention_feed_forward = FeedForward(latent_width)
 
-        self.latent_self_attns = nn.ModuleList([])
-        for _ in range(latent_self_attn_depth):
-            self.latent_self_attns.append(nn.ModuleList([
+        self.latent_self_attentions = nn.ModuleList([])
+        for _ in range(latent_self_attention_depth):
+            self.latent_self_attentions.append(nn.ModuleList([
                 AttentionBlock(latent_width, norm = True, **attn_kwargs),
                 FeedForward(latent_width)
             ]))
 
-        self.latent_final_norm = GammaLayerNorm(latent_width) if final_norm else nn.Identity()
-
-        self.patches_peg = PositionalEncodingGenerator(patches_width)
-        self.patches_self_attention = LinearAttentionBlock(patches_width, norm=True, **attn_kwargs)
-        self.patches_self_attention_feed_forward = FeedForward(patches_width)
+        self.patches_self_attentions = nn.ModuleList([])
+        for _ in range(patches_self_attention_depth):
+            self.patches_self_attentions.append(nn.ModuleList([
+                AttentionBlock(patches_width, norm = True, **attn_kwargs),
+                FeedForward(patches_width)
+            ]))
 
         self.patches_attend_to_latents = AttentionBlock(
                 patches_width,
@@ -54,6 +58,8 @@ class RINBlock(nn.Module):
             )
         self.patches_cross_attention_feed_forward = FeedForward(patches_width)
 
+        self.latent_final_norm = GammaLayerNorm(latent_width) if final_norm else nn.Identity()
+
     def forward(self, patches: Tensor, latents: Tensor, t: Tensor) -> Tuple[Tensor, Tensor]:
         patches = self.patches_peg(patches) + patches
 
@@ -62,17 +68,17 @@ class RINBlock(nn.Module):
         latents = self.latents_cross_attention_feed_forward(latents, time = t) + latents
 
         # latent self attention
-        for attention_block, feed_forward_block in self.latent_self_attns:
+        for attention_block, feed_forward_block in self.latent_self_attentions:
             latents = attention_block(latents, time = t) + latents
             latents = feed_forward_block(latents, time = t) + latents
 
         # additional patches self attention with linear attention
-        patches = self.patches_self_attention(patches, time = t) + patches
-        patches = self.patches_self_attention_feed_forward(patches) + patches
+        for attention_block, feed_forward_block in self.patches_self_attentions:
+            patches = attention_block(patches, time = t) + patches
+            patches = feed_forward_block(patches) + patches
 
         # patches attend to the latents
         patches = self.patches_attend_to_latents(patches, latents, time = t) + patches
-
         patches = self.patches_cross_attention_feed_forward(patches, time = t) + patches
 
         latents = self.latent_final_norm(latents)

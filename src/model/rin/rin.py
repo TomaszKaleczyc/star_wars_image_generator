@@ -51,6 +51,7 @@ class RIN(LightningModule, BaseModel):
             patches_width: int = config.PATCHES_WIDTH,
             latent_width: int = config.LATENT_WIDTH,
             latent_self_attention_depth: int = config.LATENT_SELF_ATTENTION_DEPTH,
+            patches_self_attention_depth: int = config.PATCHES_SELF_ATTENTION_DEPTH,
             num_blocks: int = config.NUM_BLOCKS,
             latent_token_time_cond = False,
             train_probability_self_conditioning: float = config.TRAIN_PROBABILITY_SELF_CONDITIONING,
@@ -80,6 +81,7 @@ class RIN(LightningModule, BaseModel):
         self.latent_self_attention_depth = latent_self_attention_depth
         self.num_blocks = num_blocks
         self.train_probability_self_conditioning = train_probability_self_conditioning
+        self.patches_self_attention_depth = patches_self_attention_depth
 
         self.loss_function = LOSS_FUNCTIONS[loss_function_name]
         self.activation = ACTIVATIONS[activation_name]()
@@ -180,7 +182,8 @@ class RIN(LightningModule, BaseModel):
             RINBlock(
                 patches_width=self.patches_width,
                 latent_width=self.latent_width, 
-                latent_self_attn_depth = self.latent_self_attention_depth
+                latent_self_attention_depth = self.latent_self_attention_depth,
+                patches_self_attention_depth=self.patches_self_attention_depth
             ) 
             for _ in range(self.num_blocks)
         ])
