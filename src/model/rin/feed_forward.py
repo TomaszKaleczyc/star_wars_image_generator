@@ -41,7 +41,7 @@ class FeedForward(nn.Module):
             nn.init.zeros_(self.time_cond[-2].bias)
 
         inner_dim = int(dim * multiplier)
-        self.net = nn.Sequential(
+        self.feed_forward_net = nn.Sequential(
             nn.Linear(dim, inner_dim),
             self.activation,
             nn.Linear(inner_dim, dim)
@@ -53,4 +53,4 @@ class FeedForward(nn.Module):
             assert time is not None
             scale, shift = self.time_cond(time).chunk(2, dim = -1)
             x = (x * (scale + 1)) + shift
-        return self.net(x)
+        return self.feed_forward_net(x)

@@ -129,7 +129,7 @@ class RIN(LightningModule, BaseModel):
             nn.LayerNorm(self.patches_width)
         )
 
-        self.to_pixels = nn.Sequential(
+        self.to_output_image = nn.Sequential(
             GammaLayerNorm(self.patches_width),
             nn.Linear(self.patches_width, pixel_patch_dim),
             Rearrange(
@@ -170,11 +170,11 @@ class RIN(LightningModule, BaseModel):
         self.latents = nn.Parameter(torch.randn(self.num_latents, self.latent_width))
         nn.init.normal_(self.latents, std = 0.02)  # TODO: parametrize?
 
-        self.init_self_cond_latents = nn.Sequential(
+        self.initial_self_conditioning_latents = nn.Sequential(
             FeedForward(self.latent_width),
             GammaLayerNorm(self.latent_width)
         )
-        nn.init.zeros_(self.init_self_cond_latents[-1].gamma)
+        nn.init.zeros_(self.initial_self_conditioning_latents[-1].gamma)
 
         self.blocks = nn.ModuleList([
             RINBlock(
@@ -189,72 +189,51 @@ class RIN(LightningModule, BaseModel):
             self,
             x: Tensor,
             time: Tensor,
-            x_self_cond: Optional[Tensor] = None,
-            latent_self_cond: Optional[Tensor] = None
+            x_self_conditioning: Optional[Tensor] = None,
+            latent_self_conditioning: Optional[Tensor] = None
         ) -> Tuple[Tensor, Tensor]:
         B = x.shape[0]
 
-        if config.PRINT_STATE: print('v'*100)
-
-        self._print_state(x, 'x-start')
-
-        if config.PRINT_STATE: print('x_self_cond is None', x_self_cond is None)
-        x_self_cond = x_self_cond if x_self_cond is not None else torch.zeros_like(x)
-        self._print_state(x_self_cond, 'x_self_cond')
+        x_self_conditioning = x_self_conditioning if x_self_conditioning is not None else torch.zeros_like(x)
 
         # self conditioning added as additional channels:
-        x = torch.cat((x_self_cond, x), dim = 1)
-        self._print_state(x, 'x-cat')
+        x = torch.cat((x_self_conditioning, x), dim = 1)
 
         # prepare time conditioning
         t = self.time_mlp(time)
-        self._print_state(t, 't')
 
         # prepare latents
         latents = einops.repeat(self.latents, 'n d -> b n d', b = B)
-        self._print_state(latents, 'latents-init')
 
         # the warm starting of latents as in the paper
-        if latent_self_cond is not None:
-            latents = latents + self.init_self_cond_latents(latent_self_cond)
-            self._print_state(latents, 'latents-self-cond')
+        if latent_self_conditioning is not None:
+            latents = latents + self.initial_self_conditioning_latents(latent_self_conditioning)
 
         # whether the time conditioning is to be treated as one latent token or for projecting into scale and shift for adaptive layernorm
         if self.latent_token_time_cond:
             t = einops.rearrange(t, 'b d -> b 1 d')
             latents = torch.cat((latents, t), dim = -2)
-            self._print_state(latents, 'latents-token-time')
 
         # to patches
         patches = self.to_patches(x)
-        self._print_state(patches, 'patches-init')
 
         height_range = width_range = torch.linspace(0., 1., steps = int(math.sqrt(patches.shape[-2])), device = self.device)
-        self._print_state(height_range, 'h-range')
         pos_emb_h, pos_emb_w = self.axial_pos_emb_height_mlp(height_range), self.axial_pos_emb_width_mlp(width_range)
-        self._print_state(pos_emb_h, 'pos-emb-h')
 
         pos_emb = einops.rearrange(pos_emb_h, 'i d -> i 1 d') + einops.rearrange(pos_emb_w, 'j d -> 1 j d')
-        self._print_state(pos_emb, 'pos-emb')
         patches = patches + einops.rearrange(pos_emb, 'i j d -> (i j) d')
-        self._print_state(patches, 'patches+pos_emb')
 
         # the recurrent interface network body
-        for idx, block in enumerate(self.blocks, 1):
+        for block in self.blocks:
             patches, latents = block(patches, latents, t)
-            self._print_state(patches, f'patches-block-{idx}')
-            self._print_state(latents, f'latents-block-{idx}')
 
-        # to pixels
-        pixels = self.to_pixels(patches)
-        self._print_state(pixels, 'pixels')
+        # to output image
+        output_image = self.to_output_image(patches)
 
         # remove time conditioning token, if that is the settings
         if self.latent_token_time_cond:
             latents = latents[:, :-1]
-            self._print_state(latents, 'latenst-post')
-        if config.PRINT_STATE: print('^'*100)
-        return pixels, latents
+        return output_image, latents
     
     def _loss_step(self, batch: Tensor) -> Tensor:
         """
@@ -266,18 +245,18 @@ class RIN(LightningModule, BaseModel):
         t = self.diffusion_sampler.get_batch_timesteps(batch_size=B, device=self.device)
         noisy_image, noise = self.diffusion_sampler.forward_sample(batch, t, device=self.device)
 
-        self_condition = self_latents = None
+        self_conditioning = latent_self_conditioning = None
         if random() < self.train_probability_self_conditioning:
             with torch.no_grad():
-                self_condition, self_latents = self(noisy_image, t)
-                self_latents = self_latents.detach()
-                self_condition.clamp_(-1, 1)
-                self_condition = self_condition.detach()
+                self_conditioning, latent_self_conditioning = self(noisy_image, t)
+                latent_self_conditioning = latent_self_conditioning.detach()
+                self_conditioning.clamp_(-1, 1)
+                self_conditioning = self_conditioning.detach()
         noise_prediction, _ = self(
             noisy_image, 
             t,            
-            x_self_cond = self_condition,
-            latent_self_cond = self_latents
+            x_self_conditioning = self_conditioning,
+            latent_self_conditioning = latent_self_conditioning
             )
         loss = self.loss_function(noise, noise_prediction)
         self.train_loss.update(loss)

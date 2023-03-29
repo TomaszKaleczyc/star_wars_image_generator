@@ -18,21 +18,23 @@ class LinearAttentionBlock(nn.Module):
     def __init__(
             self,
             dim: int,
-            heads: int = 4,
-            dim_head: int = 32,
+            heads: int = config.ATTENTION_BLOCK_HEADS,
+            head_size: int = config.ATTENTION_HEAD_SIZE,
+            activation_name: str = config.ACTIVATION,
             norm: bool = False,
             time_cond_dim: Optional[int] = None
         ) -> None:
         super().__init__()
-        hidden_dim = dim_head * heads
-        self.scale = dim_head ** -0.5
+        hidden_dim = head_size * heads
+        self.scale = head_size ** -0.5
         self.heads = heads
+        self.activation = ACTIVATIONS[activation_name]()
 
         self.time_cond = None
 
         if time_cond_dim is not None:
             self.time_cond = nn.Sequential(
-                nn.SiLU(),
+                self.activation,
                 nn.Linear(time_cond_dim, dim * 2),
                 Rearrange('b d -> b 1 d')
             )
@@ -44,7 +46,7 @@ class LinearAttentionBlock(nn.Module):
 
         self.to_qkv = nn.Linear(dim, hidden_dim * 3, bias = False)
 
-        self.to_out = nn.Sequential(
+        self.to_output = nn.Sequential(
             nn.Linear(hidden_dim, dim, bias = False),
             GammaLayerNorm(dim)
         )
@@ -72,6 +74,6 @@ class LinearAttentionBlock(nn.Module):
 
         context = torch.einsum('b h n d, b h n e -> b h d e', k, v)
 
-        out = torch.einsum('b h d e, b h n d -> b h n e', context, q)
-        out = einops.rearrange(out, 'b h n d -> b n (h d)')
-        return self.to_out(out)
+        output = torch.einsum('b h d e, b h n d -> b h n e', context, q)
+        output = einops.rearrange(output, 'b h n d -> b n (h d)')
+        return self.to_output(output)
