@@ -250,11 +250,7 @@ class RIN(LightningModule, BaseModel):
 
         self_conditioning = latent_self_conditioning = None
         if random() < self.train_probability_self_conditioning:
-            with torch.no_grad():
-                self_conditioning, latent_self_conditioning = self(noisy_image, t)
-                latent_self_conditioning = latent_self_conditioning.detach()
-                self_conditioning.clamp_(-1, 1)
-                self_conditioning = self_conditioning.detach()
+            self_conditioning, latent_self_conditioning = self._self_condition(noisy_image, t)
         noise_prediction, _ = self(
             noisy_image, 
             t,            
@@ -264,6 +260,17 @@ class RIN(LightningModule, BaseModel):
         loss = self.loss_function(noise, noise_prediction)
         self.train_loss.update(loss)
         return loss
+    
+    def _self_condition(self, noisy_image: Tensor, t: Tensor) -> Tuple[Tensor, Tensor]:
+        """
+        Returns the self conditioning image and latents
+        """
+        with torch.no_grad():
+            self_conditioning, latent_self_conditioning = self(noisy_image, t)
+            latent_self_conditioning = latent_self_conditioning.detach()
+            self_conditioning.clamp_(-1, 1)
+            self_conditioning = self_conditioning.detach()
+        return self_conditioning, latent_self_conditioning
         
     def training_step(self, batch: Tensor, batch_idx: int) -> Tensor:
         loss = self._loss_step(batch)

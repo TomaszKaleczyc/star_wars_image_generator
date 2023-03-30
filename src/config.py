@@ -7,7 +7,7 @@ SAMPLES_FOLDER_NAME = 'samples'
 PRINT_STATE = False
 
 # data:
-DATASET = 'StarWars'  # 'PoC' 
+DATASET =  'PoC'  # 'StarWars'
 POC_DATA_DIR = "../data/stanford-cars/"
 DATA_DIR = "../data/star-wars-images/"
 IMG_SIZE = 64
@@ -22,24 +22,24 @@ BETA_START = 1e-4
 BETA_END = 65e-4
 
 # model:
-MODEL_TYPE = 'rin' # 'unet'
+MODEL_TYPE = 'rin' # 'unet' 
 NUM_TIME_EMBEDDINGS = 32
 LOSS_FUNCTION = 'l2'  # 'huber' 'l1' 'l2'
 ACTIVATION = 'gelu'  # 'silu' 'relu' 'selu'
-POSITION_EMBEDDINGS = 'sinusoidal_learned'  # 'sinusoidal'
+POSITION_EMBEDDINGS = 'sinusoidal'  # 'sinusoidal_learned'
 # Unet specific:
 NUM_MODULE_LAYERS = 5
 KERNEL_SIZE = 3
 # RIN specific:
 PATCH_SIZE = 8
+NUM_BLOCKS = 6
+NUM_LATENTS = 128
 PATCHES_WIDTH = 256
 LATENT_WIDTH = 512  # PATCHES_WIDTH
 LATENT_SELF_ATTENTION_DEPTH = 4
-PATCHES_SELF_ATTENTION_DEPTH = 1
+PATCHES_SELF_ATTENTION_DEPTH = 2
 ATTENTION_BLOCK_HEADS = 4
 ATTENTION_HEAD_SIZE = 32
-NUM_BLOCKS = 6
-NUM_LATENTS = 128
 TRAIN_PROBABILITY_SELF_CONDITIONING = 0.9
 
 # training:
