@@ -45,6 +45,7 @@ class BaseModel(ABC):
         filename = f"random_samples_step_{self.trainer.global_step}"
         filepath = f"{file_dir}/{filename}.jpg"
         n_rows = int(num_samples**0.5)
+        imgs_tensor = (imgs_tensor + 1) / 2
         utils.save_image(imgs_tensor, fp=filepath, nrow=n_rows)
         print(f'Samples saved to {filepath}')
 
