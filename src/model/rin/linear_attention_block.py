@@ -22,7 +22,8 @@ class LinearAttentionBlock(nn.Module):
             head_size: int = config.ATTENTION_HEAD_SIZE,
             activation_name: str = config.ACTIVATION,
             norm: bool = False,
-            time_cond_dim: Optional[int] = None
+            time_cond_dim: Optional[int] = None,
+            dropout_probability: float = config.DROPOUT_PROBABILITY
         ) -> None:
         super().__init__()
         hidden_dim = head_size * heads
@@ -48,7 +49,8 @@ class LinearAttentionBlock(nn.Module):
 
         self.to_output = nn.Sequential(
             nn.Linear(hidden_dim, dim, bias = False),
-            GammaLayerNorm(dim)
+            GammaLayerNorm(dim),
+            nn.Dropout(dropout_probability)
         )
 
     def forward(

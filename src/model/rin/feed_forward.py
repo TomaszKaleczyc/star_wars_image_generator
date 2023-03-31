@@ -20,9 +20,10 @@ class FeedForward(nn.Module):
     def __init__(
             self, 
             dim: int, 
-            multiplier: int = 4, 
+            multiplier: int = config.FEED_FORWARD_MULTIPLIER, 
             time_cond_dim: Optional[int] = None,
             activation: str = config.ACTIVATION,
+            dropout_probability: float = config.DROPOUT_PROBABILITY
         ) -> None:
         super().__init__()
         self.norm = GammaLayerNorm(dim)
@@ -44,7 +45,8 @@ class FeedForward(nn.Module):
         self.feed_forward_net = nn.Sequential(
             nn.Linear(dim, inner_dim),
             self.activation,
-            nn.Linear(inner_dim, dim)
+            nn.Linear(inner_dim, dim),
+            nn.Dropout(dropout_probability),
         )
 
     def forward(self, x: Tensor, time: Optional[int] = None) -> Tensor:

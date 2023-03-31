@@ -28,7 +28,8 @@ class AttentionBlock(nn.Module):
             activation_name: str = config.ACTIVATION,
             norm: bool = False,
             norm_context: bool = False,
-            time_cond_dim: Optional[int] = None
+            time_cond_dim: Optional[int] = None,
+            dropout_probability: float = config.DROPOUT_PROBABILITY
         ) -> None:
         super().__init__()
         hidden_dim = head_size * heads
@@ -43,7 +44,6 @@ class AttentionBlock(nn.Module):
                 nn.Linear(time_cond_dim, dim * 2),
                 Rearrange('b d -> b 1 d')
             )
-
             nn.init.zeros_(self.time_cond[-2].weight)
             nn.init.zeros_(self.time_cond[-2].bias)
 
@@ -55,8 +55,11 @@ class AttentionBlock(nn.Module):
 
         self.to_q = nn.Linear(dim, hidden_dim, bias = False)
         self.to_kv = nn.Linear(dim_context, hidden_dim * 2, bias = False)
-        self.to_output = nn.Linear(hidden_dim, dim, bias = False)
-
+        self.to_output = nn.Sequential(
+            nn.Linear(hidden_dim, dim, bias = False),
+            nn.Dropout(dropout_probability)
+        )
+        
     def forward(
             self,
             x: Tensor,

@@ -58,6 +58,7 @@ class RINBlock(nn.Module):
             )
         self.patches_cross_attention_feed_forward = FeedForward(patches_width)
 
+        self.patches_final_norm = GammaLayerNorm(patches_width) if final_norm else nn.Identity()
         self.latent_final_norm = GammaLayerNorm(latent_width) if final_norm else nn.Identity()
 
     def forward(self, patches: Tensor, latents: Tensor, t: Tensor) -> Tuple[Tensor, Tensor]:
@@ -81,5 +82,6 @@ class RINBlock(nn.Module):
         patches = self.patches_attend_to_latents(patches, latents, time = t) + patches
         patches = self.patches_cross_attention_feed_forward(patches, time = t) + patches
 
+        patches = self.patches_final_norm(patches)
         latents = self.latent_final_norm(latents)
         return patches, latents
